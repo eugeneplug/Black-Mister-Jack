@@ -33,93 +33,37 @@
     #messageOverlay.show{opacity:1;pointer-events:auto}
     #betScreen{position:absolute;z-index:9;top:0;left:0;right:0;bottom:0;background:rgba(10,15,30,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:18px;font-weight:600;}
     #betScreen input{font-size:18px;padding:8px 10px;border-radius:8px;border:none;text-align:center;width:100px;}
+
+    /* 📱 Адаптация под телефоны */
+    @media (max-width: 768px) {
+      body{padding:12px;}
+      main{grid-template-columns:1fr;gap:12px;}
+      .wrap{padding:14px;}
+      h1{font-size:16px;text-align:center;margin-bottom:8px;}
+      .controls{justify-content:center;}
+      .table{padding:12px;min-height:auto;}
+      .hand{justify-content:center;min-height:100px;}
+      .card{width:56px;height:74px;border-radius:6px;}
+      .info{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:12px;}
+      .panel{flex:1 1 160px;font-size:14px;}
+      .score{font-size:16px;}
+      #messageOverlay{font-size:22px;}
+      #betScreen{font-size:16px;padding:10px;}
+      #betScreen input{font-size:16px;width:80px;}
+      footer{flex-direction:column;gap:6px;font-size:12px;text-align:center;}
+    }
+
+    @media (max-width: 420px) {
+      .card{width:48px;height:64px;}
+      button{padding:8px 12px;font-size:13px;}
+      .score{font-size:14px;}
+      .small{font-size:12px;}
+      #messageOverlay{font-size:20px;}
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Mini Blackjack — ставки и баланс</h1>
-      <div class="controls">
-        <button id="shuffle" class="secondary">Перетасовать</button>
-        <button id="addFunds" class="secondary">Пополнить баланс +100₽</button>
-      </div>
-    </header>
-
-    <main>
-      <section class="table">
-        <div id="messageOverlay"></div>
-        <div id="betScreen">
-          <div>Ваш баланс: <span id="balanceDisplay">1000</span>₽</div>
-          <div>Ставка: <input type="number" id="betInput" value="100" min="10" max="1000" step="10"> ₽</div>
-          <button id="startGame">Начать игру</button>
-        </div>
-        <div class="row">
-          <div class="small">Дилер</div>
-          <div class="hand" id="dealerHand"></div>
-          <div class="small">Игрок</div>
-          <div class="hand" id="playerHand"></div>
-        </div>
-      </section>
-
-      <aside class="info">
-        <div class="panel">
-          <div class="score">Ход: <span id="turn">—</span></div>
-          <div class="small">Очки игрока: <span id="playerScore">0</span></div>
-          <div class="small">Очки дилера: <span id="dealerScore">0</span></div>
-          <div class="small">Баланс: <span id="balance">1000</span>₽</div>
-          <div class="small">Ставка: <span id="betDisplay">0</span>₽</div>
-          <div class="actions">
-            <button id="hit">Взять</button>
-            <button id="stand">Стоп</button>
-          </div>
-          <div style="margin-top:8px" class="small">Колода: <span id="leftCount">52</span> карт</div>
-        </div>
-
-        <div class="panel">
-          <div class="small">Журнал</div>
-          <div class="log" id="log"></div>
-        </div>
-      </aside>
-    </main>
-
-    <footer>
-      
-    </footer>
-  </div>
-
-<script>
-const ranks=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const suits=['S','D','C','H'];
-function codeFromCard(rank,suit){return(rank==='10'?'0':rank)+suit;}
-function buildDeck(){const deck=[];for(const s of suits){for(const r of ranks){deck.push({rank:r,suit:s,code:codeFromCard(r,s)});}}return deck;}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
-function cardImageUrl(code){return`https://deckofcardsapi.com/static/img/${code}.png`;}
-let deck=[],player=[],dealer=[],turn='idle',balance=1000,bet=0;
-const el=id=>document.getElementById(id);
-const dealerHandEl=el('dealerHand'),playerHandEl=el('playerHand');
-const playerScoreEl=el('playerScore'),dealerScoreEl=el('dealerScore');
-const leftCountEl=el('leftCount'),logEl=el('log'),turnEl=el('turn');
-const balanceEl=el('balance'),balanceDisplay=el('balanceDisplay');
-const overlay=el('messageOverlay'),betScreen=el('betScreen'),betDisplay=el('betDisplay');
-function log(txt){const p=document.createElement('p');p.textContent=txt;logEl.prepend(p);}
-function showMessage(msg){overlay.textContent=msg;overlay.classList.add('show');setTimeout(()=>overlay.classList.remove('show'),2000);}
-function startRound(){deck=buildDeck();shuffle(deck);player=[];dealer=[];turn='player';dealInitial();render();}
-function dealInitial(){player.push(draw());dealer.push(draw());player.push(draw());dealer.push(draw());}
-function draw(){if(deck.length===0)return null;return deck.pop();}
-function cardEl(card){const d=document.createElement('div');d.className='card';d.style.backgroundImage=`url('${cardImageUrl(card.code)}')`;return d;}
-function renderHands(hideDealerSecond=false){dealerHandEl.innerHTML='';playerHandEl.innerHTML='';dealer.forEach((c,i)=>{const node=cardEl(c);if(hideDealerSecond&&i===1){node.style.backgroundImage='linear-gradient(180deg,#b5c0ff,#5566aa)';}dealerHandEl.appendChild(node);});player.forEach(c=>playerHandEl.appendChild(cardEl(c)));}
-function calculateScore(hand){let total=0,aces=0;for(const c of hand){const r=c.rank;if(r==='A'){aces++;total+=1;}else if(['J','Q','K'].includes(r)){total+=10;}else total+=parseInt(r);}for(let i=0;i<aces;i++){if(total+10<=21)total+=10;}return total;}
-function render(){renderHands(turn==='player');const pS=calculateScore(player),dS=calculateScore(dealer);playerScoreEl.textContent=pS;dealerScoreEl.textContent=turn==='player'?'?':dS;leftCountEl.textContent=deck.length;turnEl.textContent=turn==='player'?'Игрок':(turn==='dealer'?'Дилер':'—');balanceEl.textContent=balance;betDisplay.textContent=bet;}
-function endRound(result){if(result==='win'){balance+=bet;showMessage('Вы выиграли +'+bet+'₽!');log('Игрок выиграл '+bet+'₽');}else if(result==='lose'){balance-=bet;showMessage('Вы проиграли -'+bet+'₽!');log('Игрок проиграл '+bet+'₽');}else{showMessage('Ничья — ставка возвращена');log('Ничья.');}turn='idle';renderHands(false);render();setTimeout(()=>{betScreen.style.display='flex';balanceDisplay.textContent=balance;},2000);}
-function playerHit(){if(turn!=='player')return;const c=draw();if(!c){log('Колода пуста');return;}player.push(c);log('Игрок берёт '+c.rank+c.suit);const s=calculateScore(player);if(s>21){log('Перебор!');endRound('lose');}render();}
-function playerStand(){if(turn!=='player')return;turn='dealer';log('Игрок пасует');dealerPlay();}
-function dealerPlay(){renderHands(false);let s=calculateScore(dealer);while(s<17){const c=draw();if(!c)break;dealer.push(c);log('Дилер берёт '+c.rank+c.suit);s=calculateScore(dealer);}const pS=calculateScore(player),dS=calculateScore(dealer);if(dS>21)endRound('win');else if(dS===pS)endRound('draw');else if(dS>pS)endRound('lose');else endRound('win');}
-el('shuffle').addEventListener('click',()=>{deck=buildDeck();shuffle(deck);log('Колода перетасована');render();});
-el('hit').addEventListener('click',()=>playerHit());
-el('stand').addEventListener('click',playerStand);
-el('addFunds').addEventListener('click',()=>{balance+=100;balanceDisplay.textContent=balance;showMessage('+100₽ пополнение');render();});
-el('startGame').addEventListener('click',()=>{const val=parseInt(el('betInput').value)||0;if(val<=0||val>balance){showMessage('Неверная ставка');return;}bet=val;betScreen.style.display='none';startRound();render();});
-render();
-</script>
+  <!-- остальной HTML и JS твой, без изменений -->
+  <!-- просто вставь этот <style> в свой файл -->
 </body>
 </html>
