@@ -31,7 +31,7 @@
     footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
     #messageOverlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,15,30,0.85);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;opacity:0;pointer-events:none;transition:opacity .4s}
     #messageOverlay.show{opacity:1;pointer-events:auto}
-    #betScreen{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,15,30,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:18px;font-weight:600;}
+    #betScreen{position:absolute;z-index:9;top:0;left:0;right:0;bottom:0;background:rgba(10,15,30,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-size:18px;font-weight:600;}
     #betScreen input{font-size:18px;padding:8px 10px;border-radius:8px;border:none;text-align:center;width:100px;}
   </style>
 </head>
