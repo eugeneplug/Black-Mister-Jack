@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Blackjack — со ставками и балансом</title>
+  <style>
+    :root{--bg:#0b1220;--card-bg:#ffffff;--accent:#7c5cff}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,'Helvetica Neue',Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(160deg,#061021 0%,#0f1724 60%);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:28px}
+    .wrap{width:100%;max-width:980px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));border-radius:16px;padding:22px;box-shadow:0 10px 40px rgba(2,6,23,0.7);backdrop-filter:blur(6px)}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:linear-gradient(180deg,var(--accent),#5b3ee6);border:0;padding:10px 14px;border-radius:10px;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(124,92,255,0.18);transition:all .2s}
+    button:hover{filter:brightness(1.1)}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent);font-weight:700}
+    main{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    .table{background:linear-gradient(180deg,rgba(255,255,255,0.015),transparent);padding:18px;border-radius:12px;min-height:320px;position:relative;overflow:hidden}
+    .row{display:flex;flex-direction:column;gap:12px}
+    .hand{min-height:120px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+    .card{width:72px;height:96px;border-radius:8px;background:#fff;background-size:cover;background-position:center;box-shadow:0 8px 22px rgba(2,6,23,0.6);transform:translateY(0);transition:transform .22s,box-shadow .22s}
+    .card:hover{transform:translateY(-8px);box-shadow:0 18px 40px rgba(2,6,23,0.7)}
+    .info{display:flex;flex-direction:column;gap:10px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:12px;border-radius:10px}
+    .score{font-size:18px;font-weight:700}
+    .small{font-size:13px;color:#cbd7f7}
+    .actions{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+    .log{margin-top:12px;max-height:130px;overflow:auto;padding-right:6px}
+    .log p{margin:6px 0;font-size:13px;color:#cbd7f7}
+    footer{margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .hidden{display:none}
+    #messageOverlay{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,15,30,0.85);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;opacity:0;pointer-events:none;transition:opacity .4s}
+    #messageOverlay.show{opacity:1;pointer-events:auto}
+    @media(max-width:880px){main{grid-template-columns:1fr} .hand{min-height:90px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Mini Blackjack — ставки и баланс</h1>
+      <div class="controls">
+        <button id="newGame">Новая игра</button>
+        <button id="shuffle" class="secondary">Перетасовать</button>
+        <button id="addFunds" class="secondary">Пополнить баланс +100₽</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="table">
+        <div id="messageOverlay"></div>
+        <div class="row">
+          <div class="small">Дилер</div>
+          <div class="hand" id="dealerHand"></div>
+          <div class="small">Игрок</div>
+          <div class="hand" id="playerHand"></div>
+        </div>
+      </section>
+
+      <aside class="info">
+        <div class="panel">
+          <div class="score">Ход: <span id="turn">—</span></div>
+          <div class="small">Очки игрока: <span id="playerScore">0</span></div>
+          <div class="small">Очки дилера: <span id="dealerScore">0</span></div>
+          <div class="small">Баланс: <span id="balance">1000</span>₽</div>
+          <div class="small">Ставка: <input type="number" id="bet" value="100" min="10" max="1000" step="10" style="width:80px;border-radius:6px;border:none;padding:4px 6px;text-align:center"> ₽</div>
+          <div class="actions">
+            <button id="hit">Взять</button>
+            <button id="stand">Стоп</button>
+          </div>
+          <div style="margin-top:8px" class="small">Колода: <span id="leftCount">52</span> карт</div>
+        </div>
+
+        <div class="panel">
+          <div class="small">Журнал</div>
+          <div class="log" id="log"></div>
+        </div>
+
+        <div class="panel">
+          <div class="small">Совет</div>
+          <p class="small">Туз считается как 1 или 11. Победа умножает ставку ×2, ничья возвращает ставку.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="small">Картинки — Deck of Cards API (static img).</div>
+      <div class="small">Сделано красиво ❤️</div>
+    </footer>
+  </div>
+
+<script>
+const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const suits = ['S','D','C','H'];
+function codeFromCard(rank, suit){ return (rank==='10'?'0':rank)+suit; }
+function buildDeck(){ const deck=[]; for(const s of suits){ for(const r of ranks){ deck.push({rank:r,suit:s,code:codeFromCard(r,s)}); } } return deck; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+function cardImageUrl(code){ return `https://deckofcardsapi.com/static/img/${code}.png`; }
+
+let deck=[], player=[], dealer=[], turn='idle', balance=1000;
+const el=id=>document.getElementById(id);
+const dealerHandEl=el('dealerHand'), playerHandEl=el('playerHand');
+const playerScoreEl=el('playerScore'), dealerScoreEl=el('dealerScore');
+const leftCountEl=el('leftCount'), logEl=el('log'), turnEl=el('turn');
+const balanceEl=el('balance'), overlay=el('messageOverlay');
+function log(txt){ const p=document.createElement('p'); p.textContent=txt; logEl.prepend(p); }
+function showMessage(msg){ overlay.textContent=msg; overlay.classList.add('show'); setTimeout(()=>overlay.classList.remove('show'),2000); }
+function startNewGame(){
+  const bet=parseInt(el('bet').value)||0;
+  if(bet<=0 || bet>balance){ showMessage('Недостаточно средств или неверная ставка'); return; }
+  deck=buildDeck(); shuffle(deck); player=[]; dealer=[]; turn='player';
+  log('Новая игра: ставка '+bet+'₽');
+  dealInitial(); render();
+}
+function dealInitial(){ player.push(draw()); dealer.push(draw()); player.push(draw()); dealer.push(draw()); }
+function draw(){ if(deck.length===0) return null; return deck.pop(); }
+function cardEl(card){ const d=document.createElement('div'); d.className='card'; d.style.backgroundImage=`url('${cardImageUrl(card.code)}')`; return d; }
+function renderHands(hideDealerSecond=false){ dealerHandEl.innerHTML=''; playerHandEl.innerHTML=''; dealer.forEach((c,i)=>{ const node=cardEl(c); if(hideDealerSecond&&i===1){ node.style.backgroundImage='linear-gradient(180deg,#b5c0ff,#5566aa)'; } dealerHandEl.appendChild(node); }); player.forEach(c=>playerHandEl.appendChild(cardEl(c))); }
+function calculateScore(hand){ let total=0, aces=0; for(const c of hand){ const r=c.rank; if(r==='A'){aces++; total+=1;} else if(['J','Q','K'].includes(r)){total+=10;} else total+=parseInt(r); } for(let i=0;i<aces;i++){ if(total+10<=21) total+=10; } return total; }
+function render(){ renderHands(turn==='player'); const pS=calculateScore(player), dS=calculateScore(dealer); playerScoreEl.textContent=pS; dealerScoreEl.textContent=turn==='player'?'?':dS; leftCountEl.textContent=deck.length; turnEl.textContent=turn==='player'?'Игрок':(turn==='dealer'?'Дилер':'—'); balanceEl.textContent=balance; }
+function endRound(result){ const bet=parseInt(el('bet').value)||0; if(result==='win'){ balance+=bet; showMessage('Вы выиграли +'+bet+'₽!'); log('Игрок выиграл '+bet+'₽'); } else if(result==='lose'){ balance-=bet; showMessage('Вы проиграли -'+bet+'₽!'); log('Игрок проиграл '+bet+'₽'); } else { showMessage('Ничья — ставка возвращена'); log('Ничья.'); } turn='idle'; renderHands(false); render(); }
+function playerHit(){ if(turn!=='player') return; const c=draw(); if(!c){log('Колода пуста');return;} player.push(c); log('Игрок берёт '+c.rank+c.suit); const s=calculateScore(player); if(s>21){ log('Перебор!'); endRound('lose'); } render(); }
+function playerStand(){ if(turn!=='player') return; turn='dealer'; log('Игрок пасует'); dealerPlay(); }
+function dealerPlay(){ renderHands(false); let s=calculateScore(dealer); while(s<17){ const c=draw(); if(!c) break; dealer.push(c); log('Дилер берёт '+c.rank+c.suit); s=calculateScore(dealer); } const pS=calculateScore(player), dS=calculateScore(dealer); if(dS>21) endRound('win'); else if(dS===pS) endRound('draw'); else if(dS>pS) endRound('lose'); else endRound('win'); }
+el('newGame').addEventListener('click', startNewGame);
+el('shuffle').addEventListener('click',()=>{deck=buildDeck();shuffle(deck);log('Колода перетасована');render();});
+el('hit').addEventListener('click',()=>{playerHit();});
+el('stand').addEventListener('click',playerStand);
+el('addFunds').addEventListener('click',()=>{balance+=100;showMessage('+100₽ пополнение');render();});
+startNewGame();
+</script>
+</body>
+</html>
